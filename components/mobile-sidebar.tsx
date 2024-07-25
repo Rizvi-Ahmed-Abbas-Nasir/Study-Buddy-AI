@@ -1,3 +1,4 @@
+// MobileSidebar.tsx or MobileSidebar.js
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,7 +6,7 @@ import { Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Sidebar } from "@/components/sidebar";
+import { Sidebar } from "@/components/sidebar"; // Adjust the path if necessary
 
 export const MobileSidebar = ({
   apiLimitCount = 0,
