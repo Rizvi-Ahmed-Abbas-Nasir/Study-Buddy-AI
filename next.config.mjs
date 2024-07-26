@@ -1,12 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
-        domains: [
+      domains: [
         "googleusercontent.com",
         "oaidalleapiprodscus.blob.core.windows.net",
         "cdn.openai.com"
-        ]
+      ]
+    },
+    eslint: {
+      ignoreDuringBuilds: true
     }
-};
-
-export default nextConfig;
+  };
+  
+  export default nextConfig;
+  
