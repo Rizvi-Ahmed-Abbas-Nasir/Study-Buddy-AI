@@ -1,50 +1,57 @@
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
-const ollamaUrl = "http://localhost:11434";
+const ollamaUrl = "http://localhost:11434/api/generate";
 
 export async function POST(req: Request) {
   try {
-    // const { userId } = auth();
+    // CORS Headers
+    const headers = new Headers({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
 
+    if (req.method === "OPTIONS") {
+      return new NextResponse(null, { status: 200, headers });
+    }
+
+    // Authenticate User (Optional)
+    // const { userId } = auth();
     // if (!userId) {
-    //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    //   return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 401, headers });
     // }
 
+    // Parse Request Data
     const { messages, model } = await req.json();
-
     if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { message: "No messages provided or invalid format" },
-        { status: 400 }
+      return new NextResponse(
+        JSON.stringify({ message: "Invalid request: 'messages' must be an array." }),
+        { status: 400, headers }
       );
     }
 
+    // Construct Llama API Payload
     const payload = {
-      model: model || "llama3.2",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful assistant specialized in answering educational and technical queries.",
-        },
-        ...messages,
-      ],
+      model: model || "llama3",
+      prompt: messages.map((m) => `${m.role}: ${m.content}`).join("\n"),
+      stream: true,
     };
 
-    const response = await fetch(`${ollamaUrl}/api/chat`, {
+    // Call Llama API
+    const response = await fetch(ollamaUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
     if (!response.body) {
-      throw new Error("Ollama API response does not contain a body.");
+      throw new Error("No response body from Llama API.");
     }
 
+    // Stream Llama Response
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
-
     let assistantContent = "";
 
     while (true) {
@@ -52,28 +59,26 @@ export async function POST(req: Request) {
       if (done) break;
 
       const chunk = decoder.decode(value, { stream: true });
-      chunk.split("\n").forEach((line) => {
-        if (line.trim()) {
-          try {
-            const jsonLine = JSON.parse(line);
-            if (jsonLine.message && jsonLine.message.content) {
-              assistantContent += jsonLine.message.content;
-            }
-          } catch (err) {
-            console.error("Error parsing JSON line:", err, line);
-          }
+      console.log("[LLAMA STREAM]:", chunk);
+
+      try {
+        const jsonLine = JSON.parse(chunk);
+        if (jsonLine.response) {
+          assistantContent += jsonLine.response;
         }
-      });
+      } catch (err) {
+        console.error("Error parsing JSON:", err, chunk);
+      }
     }
 
-    return NextResponse.json({
-      role: "assistant",
-      content: assistantContent,
-    });
+    return new NextResponse(
+      JSON.stringify({ role: "assistant", content: assistantContent }),
+      { status: 200, headers }
+    );
   } catch (error: any) {
     console.error("[API ERROR]:", error);
-    return NextResponse.json(
-      { message: "Internal server error", error: error.message },
+    return new NextResponse(
+      JSON.stringify({ message: "Internal Server Error", error: error.message }),
       { status: 500 }
     );
   }
