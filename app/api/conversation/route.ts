@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
-const ollamaUrl = "http://localhost:11434/api/generate";
+const ollamaUrl = "https://de14-103-147-120-45.ngrok-free.app/api/generate";
 
 export async function POST(req: Request) {
   try {
